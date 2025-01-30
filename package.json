@@ -1,0 +1,39 @@
+{
+  "name": "solana-token-analytics",
+  "version": "1.0.0",
+  "description": "Comprehensive Solana token analytics including social, sentiment, and technical analysis",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm test"
+  },
+  "keywords": [
+    "solana",
+    "cryptocurrency",
+    "analytics",
+    "technical-analysis",
+    "social-analysis",
+    "market-data"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@solana/web3.js": "^1.87.6",
+    "dotenv": "^16.4.7",
+    "openai": "^4.24.1",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.11",
+    "@types/node": "^20.10.6",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.3"
+  },
+  "files": [
+    "dist/**/*"
+  ]
+}
