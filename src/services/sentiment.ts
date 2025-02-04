@@ -86,20 +86,23 @@ export class SentimentService {
           throw new Error('Empty response from OpenAI');
         }
 
-        console.log('OpenAI Response:', content);
-
-        // Clean up the response before parsing
         const cleanedContent = content.replace(/```json\s*|\s*```/g, '').trim();
-        const result = JSON.parse(cleanedContent);
+        const result = JSON.parse(cleanedContent) as {
+          overall_sentiment_score?: number;
+          magnitude?: number;
+          key_aspects?: Array<{
+            aspect?: string;
+            sentiment_score?: number;
+          }>;
+        };
 
-        // Default values if properties are missing
         return {
           score: typeof result.overall_sentiment_score === 'number' ? result.overall_sentiment_score : 0,
           magnitude: typeof result.magnitude === 'number' ? result.magnitude : 0,
-          aspects: Array.isArray(result.key_aspects) ? result.key_aspects.map(aspect => ({
+          aspects: result.key_aspects?.map(aspect => ({
             topic: String(aspect.aspect || ''),
             sentiment: typeof aspect.sentiment_score === 'number' ? aspect.sentiment_score : 0
-          })) : []
+          })) || []
         };
       } catch (error) {
         console.error('Error in performAnalysis:', error);

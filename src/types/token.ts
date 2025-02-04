@@ -160,7 +160,8 @@ export const TokenAnalyticsSchema = z.object({
       support: z.array(z.number()),
       resistance: z.array(z.number())
     })
-  }).optional()
+  }).optional(),
+
 });
 
 export interface MarketDataInput {

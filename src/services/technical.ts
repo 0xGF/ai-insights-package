@@ -332,7 +332,7 @@ export class TechnicalAnalysisService {
       patterns.push({
         name: 'Double Bottom',
         confidence: 0.8,
-        implication: 'bullish',
+        implication: 'bullish' as 'bullish',
         priceTarget: lastPrice * 1.1
       });
     }
@@ -342,7 +342,7 @@ export class TechnicalAnalysisService {
       patterns.push({
         name: 'Head and Shoulders',
         confidence: 0.7,
-        implication: 'bearish',
+        implication: 'bearish' as 'bearish',
         priceTarget: lastPrice * 0.9
       });
     }

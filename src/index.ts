@@ -3,7 +3,9 @@ import { SocialService } from "./services/social";
 import { SentimentService } from "./services/sentiment";
 import { MarketService } from "./services/market";
 import { TechnicalAnalysisService } from "./services/technical";
+import { NewsService } from "./services/news";
 import { TokenAnalytics, TokenAnalyticsSchema } from "./types/token";
+import { BirdeyeSearchItem, BirdeyeSearchResponse } from "./types/birdeye";
 
 export interface TokenAnalyzerConfig {
   birdseyeApiKey: string;
@@ -15,6 +17,7 @@ export interface AnalysisOptions {
   includeSocial?: boolean;
   includeSentiment?: boolean;
   includeTechnical?: boolean;
+  includeNews?: boolean;
 }
 
 export class TokenAnalyzer {
@@ -23,6 +26,7 @@ export class TokenAnalyzer {
   private readonly social?: SocialService;
   private readonly sentiment?: SentimentService;
   private readonly technical?: TechnicalAnalysisService;
+  private readonly news?: NewsService;
   private readonly analysisCache: Map<string, { data: TokenAnalytics; timestamp: number }>;
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
@@ -34,7 +38,6 @@ export class TokenAnalyzer {
     this.onchain = new OnChainService(config.birdseyeApiKey);
     this.market = new MarketService(config.birdseyeApiKey);
     
-    // Initialize SocialService if both Twitter and OpenAI keys are provided
     if (config.twitterApiKey && config.openaiApiKey) {
       this.social = new SocialService(config.twitterApiKey, config.openaiApiKey);
     }
@@ -42,6 +45,7 @@ export class TokenAnalyzer {
     if (config.openaiApiKey) {
       this.sentiment = new SentimentService(config.openaiApiKey);
       this.technical = new TechnicalAnalysisService(config.birdseyeApiKey);
+      this.news = new NewsService(config.openaiApiKey);
     }
     
     this.analysisCache = new Map();
@@ -49,19 +53,15 @@ export class TokenAnalyzer {
 
   async analyze(input: string, options: AnalysisOptions = {}): Promise<TokenAnalytics> {
     try {
-      // Check if input is a Solana address (base58 string of correct length)
       const isAddress = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(input);
-      
-      // Try to find the token info based on input type
       let tokenInfo: { address: string; symbol?: string; name?: string } | null = null;
 
       if (isAddress) {
         tokenInfo = { address: input };
       } else {
-        // Search by symbol or name
         const matches = await this.searchTokenList(input);
         if (matches.length > 0) {
-          tokenInfo = matches[0]; // Use best match
+          tokenInfo = matches[0];
         }
       }
 
@@ -116,10 +116,10 @@ export class TokenAnalyzer {
 
       let socialMetrics = undefined;
       let sentiment = undefined;
+      let newsAnalysis = undefined;
 
-      // Optional social analysis - now requires both Twitter and OpenAI
       if (options.includeSocial && this.social) {
-        console.log('Fetching social metrics using Twitter and OpenAI...');
+        console.log('Fetching social metrics...');
         try {
           socialMetrics = await this.social.getSocialMetrics(
             finalSymbol,
@@ -132,22 +132,21 @@ export class TokenAnalyzer {
             }
           );
 
-          console.log(`Received ${socialMetrics.tweets.length} tweets from Twitter`);
-
-          // Optional sentiment analysis
           if (options.includeSentiment && this.sentiment && socialMetrics.tweets.length > 0) {
-            console.log('Performing sentiment analysis on tweets...');
+            console.log('Performing sentiment analysis...');
             sentiment = await this.sentiment.analyzeSentiment(socialMetrics.tweets);
-            console.log('Sentiment analysis completed');
-          } else {
-            console.log('Skipping sentiment analysis:', 
-              !options.includeSentiment ? 'not requested' : 
-              !this.sentiment ? 'no sentiment service' : 
-              'no tweets available');
           }
         } catch (error) {
           console.error('Error in social/sentiment analysis:', error);
-          // Continue with analysis even if social metrics fail
+        }
+      }
+
+      if (options.includeNews && this.news) {
+        console.log('Fetching news analysis...');
+        try {
+          newsAnalysis = await this.news.getNewsAnalysis(finalSymbol, finalTokenName);
+        } catch (error) {
+          console.error('Error in news analysis:', error);
         }
       }
 
@@ -183,7 +182,7 @@ export class TokenAnalyzer {
   }>> {
     try {
       console.log('Searching for token:', query);
-  
+      
       const response = await fetch(
         `https://public-api.birdeye.so/defi/v3/search?` +
         `chain=solana` +
@@ -201,29 +200,27 @@ export class TokenAnalyzer {
           }
         }
       );
-  
+
       if (!response.ok) {
         throw new Error(`Birdeye search API error: ${response.status}`);
       }
-  
-      const data = await response.json();
-      console.log('Search response:', data);
-  
+
+      const data = (await response.json()) as BirdeyeSearchResponse;
+      
       if (!data.success || !data.data?.items) {
         console.warn('No data found in search response');
         return [];
       }
-  
-      // Find the token results
-      const tokenItem = data.data.items.find(item => item.type === 'token');
+
+      const tokenItem = data.data.items.find((item: BirdeyeSearchItem) => item.type === 'token');
       if (!tokenItem?.result) {
         console.warn('No token results found');
         return [];
       }
-  
+
       const matches = tokenItem.result
-        .filter((token: any) => token.liquidity > 0)
-        .map((token: any) => ({
+        .filter(token => token.liquidity > 0)
+        .map(token => ({
           address: token.address,
           symbol: token.symbol,
           name: token.name,
@@ -233,22 +230,20 @@ export class TokenAnalyzer {
           lastTrade: token.last_trade_human_time,
           verified: token.verified || false
         }));
-  
+
       console.log('Found matches:', matches.length);
       if (matches.length > 0) {
-        console.log('Top matches:', matches.slice(0, 3).map(m => 
-          `${m.symbol} (${m.name})\n` +
-          `  Price: $${this.formatNumber(m.price)}\n` +
-          `  Liquidity: $${this.formatNumber(m.liquidity)}\n` +
-          `  24h Volume: $${this.formatNumber(m.volume24h)}\n` +
-          `  Verified: ${m.verified}\n` +
-          `  Last Trade: ${new Date(m.lastTrade).toLocaleString()}\n` +
-          `  Address: ${m.address}`
+        console.log('Top matches:', matches.slice(0, 3).map(match => 
+          `${match.symbol} (${match.name})\n` +
+          `  Price: $${this.formatNumber(match.price)}\n` +
+          `  Liquidity: $${this.formatNumber(match.liquidity)}\n` +
+          `  24h Volume: $${this.formatNumber(match.volume24h)}\n` +
+          `  Verified: ${match.verified}\n` +
+          `  Last Trade: ${new Date(match.lastTrade).toLocaleString()}\n` +
+          `  Address: ${match.address}`
         ));
-      } else {
-        console.log('No active tokens found for:', query);
       }
-  
+
       return matches.map(({ address, symbol, name }) => ({
         address,
         symbol,

@@ -2,12 +2,12 @@
 
 The project uses environment variables for configuration. You can set these in a `.env` file. An example configuration is provided in `.env.example`.
 
-## Quickstart (ONLY TO TEST WITHOUT BUILDING)
-- Copy env.example to .env
-- Add twiter bearer key, birdeye key, openai api key
-- `nvm use 20`: Use updated node (optional).
-- `pnpm i`: PNPM install.
-- `npx ts-node src/test.ts`: RUN test.js
+## Quick Start (change token in test-token.ts)
+
+- `pnpm install`
+- `pnpm build`
+- `pnpm news`
+- `pnpm token`
 
 ## Scripts
 
@@ -15,6 +15,8 @@ The project uses environment variables for configuration. You can set these in a
 - `pnpm test`: Runs the test suite using Jest.
 - `pnpm prepare`: Prepares the package for publishing by running the build script.
 - `pnpm prepublishOnly`: Ensures tests pass before publishing.
+- `pnpm news`: Runs the news analysis script.
+- `pnpm token`: Runs the token analysis script.
 
 ## Dependencies
 
@@ -38,4 +40,5 @@ This project is licensed under the MIT License.
 ## Author
 
 Your Name
+
 # ai-insights-package
