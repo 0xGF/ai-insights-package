@@ -1,3 +1,7 @@
+# ai-insights-package
+
+This package is a collection of tools for analyzing Solana tokens and news. You can use it to gain insights using onchain, birdeye, recent twitter posts and news articles scraped from the web.
+
 ## Configuration
 
 The project uses environment variables for configuration. You can set these in a `.env` file. An example configuration is provided in `.env.example`.
@@ -39,6 +43,6 @@ This project is licensed under the MIT License.
 
 ## Author
 
-Your Name
+0xGF
 
 # ai-insights-package
